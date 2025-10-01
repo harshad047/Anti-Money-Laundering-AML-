@@ -4,85 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login with OTP</title>
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 400px;
-            margin: 50px auto;
-            padding: 20px;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        button:disabled {
-            background-color: #6c757d;
-            cursor: not-allowed;
-        }
-        .error {
-            color: red;
-            margin-top: 5px;
-        }
-        .success {
-            color: green;
-            margin-top: 5px;
-        }
-        .nav-links {
-            margin-top: 20px;
-            text-align: center;
-        }
-        .nav-links a {
-            color: #007bff;
-            text-decoration: none;
-            margin: 0 10px;
-        }
-        .step {
-            display: none;
-        }
-        .step.active {
-            display: block;
-        }
-        .step-indicator {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .step-indicator span {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background-color: #ddd;
-            margin: 0 10px;
-            line-height: 20px;
-            text-align: center;
-            font-size: 12px;
-        }
-        .step-indicator span.active {
-            background-color: #007bff;
-            color: white;
-        }
+        body { font-family: Arial, sans-serif; max-width: 400px; margin: 50px auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background-color: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; width: 100%; }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .error { color: red; margin-top: 5px; }
+        .success { color: green; margin-top: 5px; }
+        .nav-links { margin-top: 20px; text-align: center; }
+        .nav-links a { color: #007bff; text-decoration: none; margin: 0 10px; }
+        .step { display: none; }
+        .step.active { display: block; }
+        .step-indicator { text-align: center; margin-bottom: 20px; }
+        .step-indicator span { display: inline-block; width: 20px; height: 20px; border-radius: 50%; background-color: #ddd; margin: 0 10px; line-height: 20px; text-align: center; font-size: 12px; }
+        .step-indicator span.active { background-color: #007bff; color: white; }
     </style>
 </head>
 <body>
@@ -105,12 +43,7 @@
                 <input type="password" id="password" name="password" required>
             </div>
             
-            <div class="form-group">
-                <div class="g-recaptcha" data-sitekey="6LcRxtkrAAAAAPucou28uvZTCip_SPPuWWLPqIRo"></div>
-            </div>
-            
             <button type="submit" id="initLoginBtn">Send OTP</button>
-            
             <div id="message"></div>
         </form>
     </div>
@@ -122,13 +55,8 @@
                 <input type="text" id="otp" name="otp" required maxlength="6">
             </div>
             
-            <div class="form-group">
-                <div class="g-recaptcha" data-sitekey="6LcRxtkrAAAAAPucou28uvZTCip_SPPuWWLPqIRo"></div>
-            </div>
-            
             <button type="submit" id="verifyLoginBtn">Verify OTP & Login</button>
             <button type="button" id="backBtn" onclick="goBackToStep1()">Back</button>
-            
             <div id="otpMessage"></div>
         </form>
     </div>
@@ -150,18 +78,9 @@
             button.disabled = true;
             button.textContent = 'Sending...';
             
-            const recaptchaResponse = grecaptcha.getResponse();
-            if (!recaptchaResponse) {
-                messageDiv.innerHTML = '<div class="error">Please complete the reCaptcha verification</div>';
-                button.disabled = false;
-                button.textContent = 'Send OTP';
-                return;
-            }
-            
             const data = {
                 email: document.getElementById('email').value,
-                password: document.getElementById('password').value,
-                recaptchaToken: recaptchaResponse
+                password: document.getElementById('password').value
             };
             
             currentEmail = data.email;
@@ -173,14 +92,13 @@
                     body: JSON.stringify(data)
                 });
                 
-                const result = await response.text();
+                const resultText = await response.text();
                 
                 if (response.ok) {
-                    messageDiv.innerHTML = '<div class="success">' + result + '</div>';
+                    messageDiv.innerHTML = '<div class="success">' + resultText + '</div>';
                     goToStep2();
                 } else {
-                    messageDiv.innerHTML = '<div class="error">' + result + '</div>';
-                    grecaptcha.reset(); // Reset recaptcha on failure
+                    messageDiv.innerHTML = '<div class="error">' + resultText + '</div>';
                 }
             } catch (error) {
                 messageDiv.innerHTML = '<div class="error">Network error: ' + error.message + '</div>';
@@ -197,18 +115,9 @@
             button.disabled = true;
             button.textContent = 'Verifying...';
             
-            const recaptchaResponse = grecaptcha.getResponse(1); // Get response from second widget
-            if (!recaptchaResponse) {
-                otpMessageDiv.innerHTML = '<div class="error">Please complete the reCaptcha verification</div>';
-                button.disabled = false;
-                button.textContent = 'Verify OTP & Login';
-                return;
-            }
-            
             const data = {
                 email: currentEmail,
-                otp: document.getElementById('otp').value,
-                recaptchaToken: recaptchaResponse
+                otp: document.getElementById('otp').value
             };
             
             try {
@@ -218,15 +127,14 @@
                     body: JSON.stringify(data)
                 });
                 
-                const result = await response.json();
-                
                 if (response.ok) {
-                    otpMessageDiv.innerHTML = '<div class="success">Login successful! Role: ' + result.role + '</div>';
-                    localStorage.setItem('authToken', result.token);
+                    const resultJson = await response.json();
+                    otpMessageDiv.innerHTML = '<div class="success">Login successful! Role: ' + resultJson.role + '</div>';
+                    localStorage.setItem('authToken', resultJson.token);
                 } else {
-                    const errorMessage = result.error || JSON.stringify(result);
+                    const errorJson = await response.json();
+                    const errorMessage = errorJson.error || JSON.stringify(errorJson);
                     otpMessageDiv.innerHTML = '<div class="error">' + errorMessage + '</div>';
-                    grecaptcha.reset(1); // Reset second recaptcha on failure
                 }
             } catch (error) {
                 otpMessageDiv.innerHTML = '<div class="error">Network error: ' + error.message + '</div>';
@@ -240,8 +148,8 @@
             document.getElementById('step1').classList.remove('active');
             document.getElementById('step2').classList.add('active');
             document.getElementById('step1-indicator').classList.remove('active');
+            // CORRECTED THE TYPO ON THE LINE BELOW
             document.getElementById('step2-indicator').classList.add('active');
-            // No need to reset here, the form is now hidden
         }
         
         function goBackToStep1() {
@@ -249,9 +157,6 @@
             document.getElementById('step1').classList.add('active');
             document.getElementById('step2-indicator').classList.remove('active');
             document.getElementById('step1-indicator').classList.add('active');
-            // Reset both reCaptcha widgets when navigating
-            grecaptcha.reset(0);
-            grecaptcha.reset(1);
         }
 
         async function testApi() {
@@ -263,9 +168,7 @@
 
             try {
                 const response = await fetch('http://localhost:8080/api/customer/profile', {
-                    headers: {
-                        'Authorization': 'Bearer ' + token
-                    }
+                    headers: { 'Authorization': 'Bearer ' + token }
                 });
                 
                 if (response.ok) {

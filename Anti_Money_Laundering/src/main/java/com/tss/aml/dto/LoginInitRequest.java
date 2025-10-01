@@ -13,7 +13,7 @@ public class LoginInitRequest {
     @NotBlank
     private String password;
     
-    @NotBlank
-    private String recaptchaToken;
+
 }
+
 
