@@ -6,9 +6,11 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+
+import jakarta.mail.internet.MimeMessage;
 
 @Service
 public class OtpService {
@@ -20,17 +22,70 @@ public class OtpService {
     private JavaMailSender mailSender;
 
     public void sendOtpToEmail(String email) {
-        String otp = String.format("%06d", ThreadLocalRandom.current().nextInt(0, 1_000_000));
-        OtpEntry entry = new OtpEntry(otp, Instant.now().plusSeconds(EXPIRY_SECONDS));
-        store.put(email, entry);
+        try {
+            String otp = String.format("%06d", ThreadLocalRandom.current().nextInt(0, 1_000_000));
+            OtpEntry entry = new OtpEntry(otp, Instant.now().plusSeconds(EXPIRY_SECONDS));
+            store.put(email, entry);
 
-        // send email
-        SimpleMailMessage msg = new SimpleMailMessage();
-        msg.setTo(email);
-        msg.setSubject("Your verification OTP");
-        msg.setText("Your OTP for registration is: " + otp + " (valid for 5 minutes)");
-        mailSender.send(msg);
+            // Create HTML content
+            String htmlContent = """
+                <html>
+                    <head>
+                        <style>
+                            body {
+                                font-family: Arial, sans-serif;
+                                background-color: #f4f4f4;
+                                padding: 20px;
+                            }
+                            .container {
+                                max-width: 500px;
+                                margin: auto;
+                                background: #ffffff;
+                                padding: 20px;
+                                border-radius: 10px;
+                                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+                            }
+                            h2 {
+                                color: #333333;
+                            }
+                            .otp {
+                                font-size: 24px;
+                                font-weight: bold;
+                                color: #007bff;
+                                margin: 20px 0;
+                            }
+                            .note {
+                                font-size: 14px;
+                                color: #555555;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <h2>Your Verification OTP</h2>
+                            <p>Use the OTP below to complete your registration:</p>
+                            <div class="otp">""" + otp + """
+                            <p class="note">This OTP is valid for 5 minutes.</p>
+                        </div>
+                    </body>
+                </html>
+            """;
+
+            // Send as HTML email
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setTo(email);
+            helper.setSubject("Your verification OTP");
+            helper.setText(htmlContent, true); // true = HTML
+
+            mailSender.send(mimeMessage);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
+
 
     public boolean verifyOtp(String email, String otp) {
         OtpEntry e = store.get(email);
