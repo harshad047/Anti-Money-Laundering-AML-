@@ -1,12 +1,13 @@
-package com.tss.aml;
+package com.tss.captchaTest;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class AntiMoneyLaunderingApplication {
+public class TestingReCaptchaApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(AntiMoneyLaunderingApplication.class, args);
+		SpringApplication.run(TestingReCaptchaApplication.class, args);
 	}
+
 }

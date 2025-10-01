@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registration with reCaptcha</title>
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .error {
+            color: red;
+            margin-top: 5px;
+        }
+        .success {
+            color: green;
+            margin-top: 5px;
+        }
+        .step {
+            display: none;
+        }
+        .step.active {
+            display: block;
+        }
+        .step-indicator {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .step-indicator span {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: #ddd;
+            margin: 0 10px;
+            line-height: 20px;
+            text-align: center;
+            font-size: 12px;
+        }
+        .step-indicator span.active {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h2>User Registration with OTP & reCaptcha</h2>
+    
+    <div class="step-indicator">
+        <span id="step1-indicator" class="active">1</span>
+        <span id="step2-indicator">2</span>
+        <span id="step3-indicator">3</span>
+    </div>
+    
+    <!-- Step 1: Basic Information -->
+    <div id="step1" class="step active">
+        <form id="registrationForm">
+        <div class="form-group">
+            <label for="firstName">First Name:</label>
+            <input type="text" id="firstName" name="firstName" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="middleName">Middle Name:</label>
+            <input type="text" id="middleName" name="middleName">
+        </div>
+        
+        <div class="form-group">
+            <label for="lastName">Last Name:</label>
+            <input type="text" id="lastName" name="lastName" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">Phone:</label>
+            <input type="tel" id="phone" name="phone">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="role">Role:</label>
+            <select id="role" name="role">
+                <option value="CUSTOMER">Customer</option>
+                <option value="ADMIN">Admin</option>
+            </select>
+        </div>
+        
+
+        
+        <div class="form-group">
+            <label for="street">Street:</label>
+            <input type="text" id="street" name="street">
+        </div>
+        
+        <div class="form-group">
+            <label for="city">City:</label>
+            <input type="text" id="city" name="city">
+        </div>
+        
+        <div class="form-group">
+            <label for="state">State:</label>
+            <input type="text" id="state" name="state">
+        </div>
+        
+        <div class="form-group">
+            <label for="country">Country:</label>
+            <input type="text" id="country" name="country">
+        </div>
+        
+        <div class="form-group">
+            <label for="postalCode">Postal Code:</label>
+            <input type="text" id="postalCode" name="postalCode">
+        </div>
+        
+        <button type="button" onclick="sendOtpAndProceed()">Send OTP & Continue</button>
+        
+        <div id="message"></div>
+    </form>
+    </div>
+    
+    <!-- Step 2: OTP Verification -->
+    <div id="step2" class="step">
+        <h3>Verify Your Email</h3>
+        <form id="otpForm">
+            <div class="form-group">
+                <label for="otp">Enter OTP sent to your email:</label>
+                <input type="text" id="otp" name="otp" required maxlength="6">
+            </div>
+            
+            <button type="button" onclick="verifyOtpAndProceed()">Verify OTP</button>
+            <button type="button" onclick="goBackToStep1()">Back</button>
+            
+            <div id="otpMessage"></div>
+        </form>
+    </div>
+    
+    <!-- Step 3: Final Registration with reCaptcha -->
+    <div id="step3" class="step">
+        <h3>Complete Registration</h3>
+        <form id="finalRegistrationForm">
+            <div class="form-group">
+                <div class="g-recaptcha" data-sitekey="6LcRxtkrAAAAAPucou28uvZTCip_SPPuWWLPqIRo"></div>
+            </div>
+            
+            <button type="button" onclick="completeRegistration()">Complete Registration</button>
+            <button type="button" onclick="goBackToStep2()">Back</button>
+            
+            <div id="finalMessage"></div>
+        </form>
+    </div>
+
+    <script>
+        let registrationData = {};
+        let currentEmail = '';
+        
+        // Step 1: Collect basic information and send OTP
+		async function sendOtpAndProceed() {
+		    const formData = new FormData(document.getElementById('registrationForm'));
+		    
+		    // CORRECTLY populate the registrationData object from the form
+		    registrationData = {
+		        firstName: formData.get('firstName'),
+		        middleName: formData.get('middleName'),
+		        lastName: formData.get('lastName'),
+		        email: formData.get('email'),
+		        phone: formData.get('phone'),
+		        password: formData.get('password'),
+		        role: formData.get('role'),
+		        street: formData.get('street'),
+		        city: formData.get('city'),
+		        state: formData.get('state'),
+		        country: formData.get('country'),
+		        postalCode: formData.get('postalCode')
+		    };
+		    
+		    // NOW get the email from the populated object
+		    currentEmail = registrationData.email;
+		    
+		    // --- The rest of the function remains the same ---
+		    try {
+		        // This will now correctly send the user's email
+		        const response = await fetch('http://localhost:8080/api/register/send-otp', {
+		            method: 'POST',
+		            headers: {
+		                'Content-Type': 'application/x-www-form-urlencoded',
+		            },
+		            body: 'email=' + encodeURIComponent(currentEmail)
+		        });
+		        
+		        if (response.ok) {
+		            const responseText = await response.text();
+		            if (responseText) {
+		                const result = JSON.parse(responseText);
+		                document.getElementById('message').innerHTML = '<div class="success">' + result.message + '</div>';
+		            } else {
+		                document.getElementById('message').innerHTML = '<div class="success">OTP sent successfully!</div>';
+		            }
+		            goToStep2();
+		        } else {
+		            document.getElementById('message').innerHTML = '<div class="error">Error sending OTP</div>';
+		        }
+		    } catch (error) {
+		        document.getElementById('message').innerHTML = '<div class="error">Network error: ' + error.message + '</div>';
+		    }
+		}
+        
+        // Step 2: Verify OTP
+        async function verifyOtpAndProceed() {
+            const otp = document.getElementById('otp').value;
+            
+            try {
+                const response = await fetch('http://localhost:8080/api/register/verify-otp', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'email=' + encodeURIComponent(currentEmail) + '&otp=' + encodeURIComponent(otp)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.verified) {
+                    document.getElementById('otpMessage').innerHTML = '<div class="success">OTP verified successfully!</div>';
+                    goToStep3();
+                } else {
+                    document.getElementById('otpMessage').innerHTML = '<div class="error">Invalid OTP. Please try again.</div>';
+                }
+            } catch (error) {
+                document.getElementById('otpMessage').innerHTML = '<div class="error">Network error: ' + error.message + '</div>';
+            }
+        }
+		
+
+		
+		// Step 3: Complete registration with reCaptcha
+		async function completeRegistration() {
+		    const recaptchaResponse = grecaptcha.getResponse();
+		    
+		    if (!recaptchaResponse) {
+		        document.getElementById('finalMessage').innerHTML = '<div class="error">Please complete the reCaptcha verification</div>';
+		        return;
+		    }
+		    
+		    // Combine the data from Step 1 with the reCaptcha token
+		    const data = {
+		        ...registrationData,
+		        recaptchaToken: recaptchaResponse
+		    };
+		    
+		    try {
+				console.log("Sending this data to the server:", data); 
+
+				const response = await fetch('http://localhost:8080/api/register', {
+				    method: 'POST',
+				    headers: { 'Content-Type': 'application/json' },
+				    body: JSON.stringify(data) // Make sure you are stringifying the object
+				});
+		        
+		        // This part handles both success and error JSON from the server
+		        const result = await response.json();
+		        
+		        if (response.ok) {
+		            document.getElementById('finalMessage').innerHTML = '<div class="success">Registration successful!</div>';
+		            // You can also display the customerId or token from the result if needed
+		            // console.log(result);
+		        } else {
+		            // Display a specific error from the server if available, otherwise a generic one
+		            const errorMessage = result.error || 'Registration failed. Please try again.';
+		            document.getElementById('finalMessage').innerHTML = '<div class="error">Error: ' + errorMessage + '</div>';
+		        }
+		    } catch (error) {
+		        document.getElementById('finalMessage').innerHTML = '<div class="error">Network error: ' + error.message + '</div>';
+		    }
+		}
+        
+
+        function goToStep2() {
+            document.getElementById('step1').classList.remove('active');
+            document.getElementById('step2').classList.add('active');
+            document.getElementById('step1-indicator').classList.remove('active');
+            document.getElementById('step2-indicator').classList.add('active');
+        }
+		
+		
+        
+        function goToStep3() {
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step3').classList.add('active');
+            document.getElementById('step2-indicator').classList.remove('active');
+            document.getElementById('step3-indicator').classList.add('active');
+        }
+        
+        function goBackToStep1() {
+            document.getElementById('step2').classList.remove('active');
+            document.getElementById('step1').classList.add('active');
+            document.getElementById('step2-indicator').classList.remove('active');
+            document.getElementById('step1-indicator').classList.add('active');
+        }
+        
+        function goBackToStep2() {
+            document.getElementById('step3').classList.remove('active');
+            document.getElementById('step2').classList.add('active');
+            document.getElementById('step3-indicator').classList.remove('active');
+            document.getElementById('step2-indicator').classList.add('active');
+        }
+    </script>
+</body>
+</html>
