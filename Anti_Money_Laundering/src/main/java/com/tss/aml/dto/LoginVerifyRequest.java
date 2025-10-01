@@ -13,6 +13,4 @@ public class LoginVerifyRequest {
 
     @NotBlank(message = "OTP must not be blank")
     private String otp;
-    
-
 }

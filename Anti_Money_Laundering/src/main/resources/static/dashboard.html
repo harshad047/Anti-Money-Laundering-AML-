@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .upload-section { border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        h2, h3 { color: #333; }
+        input[type="file"] { margin-bottom: 10px; }
+        button { background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:disabled { background-color: #6c757d; }
+        .message { margin-top: 15px; font-weight: bold; }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h2>User Dashboard</h2>
+    <p>Welcome! Please upload your KYC documents.</p>
+
+    <div class="upload-section">
+        <h3>Upload Aadhaar Card</h3>
+        <form id="aadhaarForm">
+            <input type="file" id="aadhaarFile" required>
+            <button type="submit">Upload Aadhaar</button>
+            <div id="aadhaarMessage" class="message"></div>
+        </form>
+    </div>
+
+    <div class="upload-section">
+        <h3>Upload PAN Card</h3>
+        <form id="panForm">
+            <input type="file" id="panFile" required>
+            <button type="submit">Upload PAN</button>
+            <div id="panMessage" class="message"></div>
+        </form>
+    </div>
+
+    <script>
+        // Page Guard: Check for auth token, redirect to login if not found.
+        (function() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '/login.html'; // Adjust to your login page path
+            }
+        })();
+
+        // Add event listeners to forms
+        document.getElementById('aadhaarForm').addEventListener('submit', (e) => uploadDocument(e, 'AADHAAR'));
+        document.getElementById('panForm').addEventListener('submit', (e) => uploadDocument(e, 'PAN'));
+
+        async function uploadDocument(event, docType) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const fileInput = form.querySelector('input[type="file"]');
+            const messageDiv = form.querySelector('.message');
+            const button = form.querySelector('button');
+
+            const file = fileInput.files[0];
+            if (!file) {
+                messageDiv.className = 'message error';
+                messageDiv.textContent = 'Please select a file to upload.';
+                return;
+            }
+
+            const token = localStorage.getItem('authToken');
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('docType', docType);
+
+            button.disabled = true;
+            button.textContent = 'Uploading...';
+            messageDiv.textContent = '';
+
+            try {
+                const response = await fetch('http://localhost:8080/api/documents/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                        // No 'Content-Type' header needed, browser sets it for FormData
+                    },
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    messageDiv.className = 'message success';
+                    messageDiv.textContent = result.message;
+                    form.reset(); // Clear the form on success
+                } else {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = 'Error: ' + (result.error || 'Upload failed.');
+                }
+            } catch (error) {
+                messageDiv.className = 'message error';
+                messageDiv.textContent = 'Network error. Please try again.';
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Upload ' + (docType === 'AADHAAR' ? 'Aadhaar' : 'PAN');
+            }
+        }
+    </script>
+</body>
+</html>
