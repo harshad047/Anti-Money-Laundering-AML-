@@ -71,7 +71,6 @@
         const messageDiv = document.getElementById('message');
         const otpMessageDiv = document.getElementById('otpMessage');
         
-        // Step 1: Initialize login
         document.getElementById('loginInitForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const button = document.getElementById('initLoginBtn');
@@ -108,41 +107,48 @@
             }
         });
         
-        // Step 2: Verify OTP
-        document.getElementById('loginVerifyForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const button = document.getElementById('verifyLoginBtn');
-            button.disabled = true;
-            button.textContent = 'Verifying...';
-            
-            const data = {
-                email: currentEmail,
-                otp: document.getElementById('otp').value
-            };
-            
-            try {
-                const response = await fetch('http://localhost:8080/api/auth/login/verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                if (response.ok) {
-                    const resultJson = await response.json();
-                    otpMessageDiv.innerHTML = '<div class="success">Login successful! Role: ' + resultJson.role + '</div>';
-                    localStorage.setItem('authToken', resultJson.token);
-                } else {
-                    const errorJson = await response.json();
-                    const errorMessage = errorJson.error || JSON.stringify(errorJson);
-                    otpMessageDiv.innerHTML = '<div class="error">' + errorMessage + '</div>';
-                }
-            } catch (error) {
-                otpMessageDiv.innerHTML = '<div class="error">Network error: ' + error.message + '</div>';
-            } finally {
-                button.disabled = false;
-                button.textContent = 'Verify OTP & Login';
-            }
-        });
+		// Step 2: Verify OTP
+		document.getElementById('loginVerifyForm').addEventListener('submit', async function(e) {
+		    e.preventDefault();
+		    const button = document.getElementById('verifyLoginBtn');
+		    button.disabled = true;
+		    button.textContent = 'Verifying...';
+		    
+		    const data = {
+		        email: currentEmail,
+		        otp: document.getElementById('otp').value
+		    };
+		    
+		    try {
+		        const response = await fetch('http://localhost:8080/api/auth/login/verify', {
+		            method: 'POST',
+		            headers: { 'Content-Type': 'application/json' },
+		            body: JSON.stringify(data)
+		        });
+		        
+		        if (response.ok) {
+		            const resultJson = await response.json();
+		            otpMessageDiv.innerHTML = '<div class="success">Login successful! Redirecting...</div>';
+		            localStorage.setItem('authToken', resultJson.token);
+
+		            // Redirect to the dashboard after a short delay
+		            setTimeout(() => {
+		                window.location.href = 'http://127.0.0.1:5500/src/main/resources/static/dashboard.html';
+		            }, 1500); // Wait 1.5 seconds
+
+		        } else {
+		            const errorJson = await response.json();
+		            const errorMessage = errorJson.error || JSON.stringify(errorJson);
+		            otpMessageDiv.innerHTML = '<div class="error">' + errorMessage + '</div>';
+		            button.disabled = false;
+		            button.textContent = 'Verify OTP & Login';
+		        }
+		    } catch (error) {
+		        otpMessageDiv.innerHTML = '<div class="error">Network error: ' + error.message + '</div>';
+		        button.disabled = false;
+		        button.textContent = 'Verify OTP & Login';
+		    }
+		});
         
         function goToStep2() {
             document.getElementById('step1').classList.remove('active');
