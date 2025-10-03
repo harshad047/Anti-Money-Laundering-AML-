@@ -10,6 +10,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -19,11 +20,11 @@ import com.tss.aml.dto.RegistrationRequest;
 import com.tss.aml.entity.Customer;
 import com.tss.aml.entity.Document;
 import com.tss.aml.service.CloudinaryService;
+import com.tss.aml.service.EmailService;
 import com.tss.aml.service.RegistrationService;
 import com.tss.aml.util.JwtUtil;
 
 import io.jsonwebtoken.io.IOException;
-import org.springframework.web.bind.annotation.RequestBody;
 import jakarta.validation.Valid;
 
 @RestController
@@ -33,6 +34,7 @@ public class RegistrationController {
 
     @Autowired private RegistrationService regService;
     @Autowired private JwtUtil jwtUtil;
+    @Autowired private EmailService emailService;
 
     // 1. send OTP to email (AJAX)
     @PostMapping("/send-otp")
@@ -53,14 +55,20 @@ public class RegistrationController {
     // 3. register after OTP verified (body = RegistrationRequest DTO)
     @PostMapping
     public ResponseEntity<?> register(@Valid @RequestBody RegistrationRequest req, BindingResult br) {
-        // Now 'req' will be correctly populated with data from the front-end
         if (br.hasErrors()) {
             return ResponseEntity.badRequest().body(br.getAllErrors());
         }
         
         try {
+            // This creates the customer in the database
             Customer created = regService.registerCustomer(req);
+            
+            // 3. SEND THE REGISTRATION SUCCESS EMAIL
+            emailService.sendRegistrationSuccessEmail(created.getEmail(), created.getFirstName());
+
+            // Generate a token so the user can be logged in immediately
             String token = jwtUtil.generateToken(created.getEmail(), created.getRole().name());
+            
             return ResponseEntity.ok(Map.of(
                 "customerId", created.getId(),
                 "token", token,

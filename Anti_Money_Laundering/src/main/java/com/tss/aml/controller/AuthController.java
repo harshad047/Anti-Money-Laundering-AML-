@@ -13,7 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tss.aml.dto.AuthResponse;
 import com.tss.aml.dto.LoginInitRequest;
-import com.tss.aml.dto.LoginVerifyRequest; // Using the specific DTO for OTP verification
+import com.tss.aml.dto.LoginVerifyRequest;
+import com.tss.aml.service.EmailService;
 import com.tss.aml.entity.Customer;
 import com.tss.aml.repository.CustomerRepository;
 import com.tss.aml.service.OtpService;
@@ -38,10 +39,10 @@ public class AuthController {
     
     @Autowired
     private OtpService otpService;
-
-    /**
-     * Step 1: Validates credentials and sends an OTP to the user's email.
-     */
+    
+    @Autowired
+    private EmailService emailService;
+    
     @PostMapping("/login/init")
     public ResponseEntity<?> loginInit(@Valid @RequestBody LoginInitRequest loginInitRequest) {
         try {
@@ -64,23 +65,19 @@ public class AuthController {
         }
     }
 
-    /**
-     * Step 2: Verifies the OTP and completes the login by issuing a JWT.
-     */
     @PostMapping("/login/verify")
     public ResponseEntity<?> loginVerify(@Valid @RequestBody LoginVerifyRequest loginRequest) {
         try {
-            // Verify OTP
             if (!otpService.verifyOtp(loginRequest.getEmail(), loginRequest.getOtp())) {
                 return ResponseEntity.badRequest().body("Invalid or expired OTP.");
             }
 
-            // Get customer details
             Customer customer = customerRepository.findByEmail(loginRequest.getEmail())
                 .orElseThrow(() -> new EntityNotFoundException("User not found with email: " + loginRequest.getEmail()));
 
-            // Generate JWT token
             String token = jwtUtil.generateToken(customer.getEmail(), customer.getRole().name());
+
+            emailService.sendLoginSuccessEmailHtml(customer.getEmail());
             
             return ResponseEntity.ok(new AuthResponse(
                 token,

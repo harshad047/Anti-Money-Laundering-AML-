@@ -27,7 +27,6 @@ public class OtpService {
             OtpEntry entry = new OtpEntry(otp, Instant.now().plusSeconds(EXPIRY_SECONDS));
             store.put(email, entry);
 
-            // Create HTML content
             String htmlContent = """
                 <html>
                     <head>
